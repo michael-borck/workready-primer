@@ -1,0 +1,12 @@
+{
+  "name": "workready-primer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WorkReady — interactive fiction primer for the Curtin internship simulation. Built with Ink + inkjs.",
+  "scripts": {
+    "build": "./build.sh"
+  },
+  "devDependencies": {
+    "inkjs": "2.3.0"
+  }
+}

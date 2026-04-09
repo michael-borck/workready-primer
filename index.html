@@ -216,8 +216,11 @@
         <div id="error"></div>
     </div>
 
-    <!-- inkjs runtime (loads pre-compiled JSON from workready.ink.json) -->
-    <script src="https://cdn.jsdelivr.net/npm/inkjs@2.3.0/dist/ink.js"></script>
+    <!-- inkjs runtime (vendored locally — version 2.3.0)
+         Loads pre-compiled JSON from workready.ink.json.
+         Vendored to remove the CDN dependency: works offline, on file://,
+         and through restrictive LMS/university network firewalls. -->
+    <script src="lib/ink.js"></script>
 
     <script>
     (function() {
