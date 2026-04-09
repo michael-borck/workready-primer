@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkReady — Internship Primer</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #fafafa;
+            --text: #1a1a1a;
+            --muted: #666;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --surface: #ffffff;
+            --border: #e5e7eb;
+            --choice-bg: #f0f4ff;
+            --choice-hover: #dbeafe;
+            --radius: 8px;
+        }
+
+        /* Tone-specific theming */
+        body.tone-warm {
+            --accent: #d97706;
+            --accent-hover: #b45309;
+            --choice-bg: #fffbeb;
+            --choice-hover: #fef3c7;
+        }
+
+        body.tone-professional {
+            --accent: #374151;
+            --accent-hover: #1f2937;
+            --choice-bg: #f3f4f6;
+            --choice-hover: #e5e7eb;
+        }
+
+        body.tone-playful {
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --choice-bg: #f5f3ff;
+            --choice-hover: #ede9fe;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 17px;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #story-container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+            min-height: 100vh;
+        }
+
+        #story-container p {
+            margin: 0 0 0.8em 0;
+            opacity: 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #story-container p {
+                animation: none;
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .choice-container {
+            margin: 1.5rem 0 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .choice {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--choice-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 16px;
+            line-height: 1.5;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            font-family: inherit;
+        }
+
+        .choice:hover, .choice:focus-visible {
+            background: var(--choice-hover);
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        .choice:focus-visible {
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .choice:active {
+            transform: scale(0.99);
+        }
+
+        /* Chosen answer shown inline */
+        .chosen {
+            color: var(--accent);
+            font-style: italic;
+            margin: 0.5rem 0 1rem 0;
+        }
+
+        /* Separator between stages */
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2rem 0;
+        }
+
+        /* Score display in playful mode */
+        .score-bar {
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            font-size: 14px;
+            color: var(--muted);
+            z-index: 10;
+            display: none;
+        }
+
+        body.tone-playful .score-bar {
+            display: block;
+        }
+
+        /* Tags/HTML within ink */
+        #story-container b {
+            font-weight: 600;
+        }
+
+        #story-container i {
+            font-style: italic;
+            color: var(--muted);
+        }
+
+        /* Loading state */
+        #loading {
+            text-align: center;
+            padding: 4rem 1rem;
+            color: var(--muted);
+        }
+
+        #loading .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error state */
+        #error {
+            display: none;
+            padding: 2rem;
+            color: #991b1b;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: var(--radius);
+            margin: 2rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            #story-container {
+                padding: 1.25rem 1rem 3rem;
+            }
+            body {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="score-bar" id="score-bar">
+        Readiness: <span id="score-readiness">0</span> |
+        Confidence: <span id="score-confidence">50</span>
+    </div>
+
+    <div id="story-container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Loading WorkReady...</p>
+        </div>
+        <div id="error"></div>
+    </div>
+
+    <!-- inkjs runtime (loads pre-compiled JSON from workready.ink.json) -->
+    <script src="https://cdn.jsdelivr.net/npm/inkjs@2.3.0/dist/ink.js"></script>
+
+    <script>
+    (function() {
+        'use strict';
+
+        var storyContainer = document.getElementById('story-container');
+        var loadingEl = document.getElementById('loading');
+        var errorEl = document.getElementById('error');
+        var scoreBar = document.getElementById('score-bar');
+        var story = null;
+        var currentTone = 0;
+
+        // The compiled story JSON will be injected here by the build script,
+        // or loaded from an external file.
+        var storyContent = null;
+
+        // Try to load story JSON from external file, or use embedded content
+        function init() {
+            if (storyContent) {
+                startStory(storyContent);
+                return;
+            }
+
+            // Try loading compiled JSON from external file
+            fetch('workready.ink.json')
+                .then(function(response) {
+                    if (!response.ok) throw new Error('No compiled JSON found');
+                    return response.json();
+                })
+                .then(function(json) {
+                    startStory(json);
+                })
+                .catch(function(e) {
+                    showError('Could not load story: ' + e.message + '. Make sure workready.ink.json is in the same directory as index.html.');
+                });
+        }
+
+        function startStory(content) {
+            loadingEl.style.display = 'none';
+
+            if (content instanceof inkjs.Story) {
+                story = content;
+            } else {
+                story = new inkjs.Story(content);
+            }
+
+            // Observe tone changes
+            story.ObserveVariable('tone', function(varName, newValue) {
+                currentTone = newValue;
+                updateToneClass();
+            });
+
+            // Observe score changes for the score bar
+            story.ObserveVariable('readiness_score', function(varName, newValue) {
+                var el = document.getElementById('score-readiness');
+                if (el) el.textContent = newValue;
+            });
+            story.ObserveVariable('confidence', function(varName, newValue) {
+                var el = document.getElementById('score-confidence');
+                if (el) el.textContent = newValue;
+            });
+
+            continueStory();
+        }
+
+        function continueStory() {
+            var shouldClear = false;
+
+            while (story.canContinue) {
+                var text = story.Continue();
+                var tags = story.currentTags;
+
+                // Check for CLEAR tag
+                if (tags && tags.indexOf('CLEAR') !== -1) {
+                    shouldClear = true;
+                }
+
+                // Skip empty paragraphs
+                if (text.trim() === '') continue;
+
+                if (shouldClear) {
+                    clearStory();
+                    shouldClear = false;
+                }
+
+                var p = document.createElement('p');
+                p.innerHTML = text;
+                storyContainer.appendChild(p);
+            }
+
+            // Render choices
+            if (story.currentChoices.length > 0) {
+                var choiceContainer = document.createElement('div');
+                choiceContainer.className = 'choice-container';
+
+                story.currentChoices.forEach(function(choice, index) {
+                    var button = document.createElement('button');
+                    button.className = 'choice';
+                    button.innerHTML = choice.text;
+                    button.setAttribute('role', 'option');
+
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        // Show chosen answer
+                        var chosen = document.createElement('p');
+                        chosen.className = 'chosen';
+                        chosen.innerHTML = '> ' + choice.text;
+                        choiceContainer.parentNode.insertBefore(chosen, choiceContainer);
+
+                        // Remove choices
+                        choiceContainer.remove();
+
+                        // Make the choice
+                        story.ChooseChoiceIndex(index);
+
+                        // Continue
+                        continueStory();
+                    });
+
+                    choiceContainer.appendChild(button);
+                });
+
+                storyContainer.appendChild(choiceContainer);
+
+                // Focus first choice for keyboard navigation
+                var firstChoice = choiceContainer.querySelector('.choice');
+                if (firstChoice) {
+                    firstChoice.focus({ preventScroll: true });
+                }
+            } else {
+                // Story has reached -> END (no more content, no more choices).
+                // This is the LMS completion hook point.
+                handleStoryEnd();
+            }
+
+            scrollToBottom();
+        }
+
+        function handleStoryEnd() {
+            // The Ink story has reached -> END.
+            //
+            // LMS COMPLETION HOOK:
+            // This is where you signal completion to an LMS (Blackboard / Canvas).
+            // Options:
+            //   1. SCORM: call pipwerks.SCORM.set("cmi.core.lesson_status", "completed")
+            //      (requires the SCORM API wrapper to be loaded; package as a SCORM zip)
+            //   2. LTI/xAPI: POST a completion statement to the configured xAPI endpoint
+            //   3. Postmessage: window.parent.postMessage({type: 'workready_complete', ...}, '*')
+            //      if embedded in an iframe by a custom LMS integration
+            //   4. None: students self-report; nothing to do here
+            //
+            // Final state available via:
+            //   story.variablesState['readiness_score']
+            //   story.variablesState['confidence']
+            //   etc.
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'workready_complete',
+                        readiness_score: story.variablesState['readiness_score'],
+                        confidence: story.variablesState['confidence'],
+                        tone: story.variablesState['tone']
+                    }, '*');
+                }
+            } catch (e) { /* iframe sandbox may block postMessage; non-fatal */ }
+        }
+
+        function clearStory() {
+            // Remove all content except loading and error divs
+            while (storyContainer.firstChild) {
+                storyContainer.removeChild(storyContainer.firstChild);
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function updateToneClass() {
+            document.body.classList.remove('tone-warm', 'tone-professional', 'tone-playful');
+            if (currentTone === 1) document.body.classList.add('tone-warm');
+            else if (currentTone === 2) document.body.classList.add('tone-professional');
+            else if (currentTone === 3) document.body.classList.add('tone-playful');
+        }
+
+        function scrollToBottom() {
+            var lastElement = storyContainer.lastElementChild;
+            if (lastElement) {
+                setTimeout(function() {
+                    lastElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 50);
+            }
+        }
+
+        function showError(msg) {
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+            errorEl.textContent = msg;
+        }
+
+        // Start when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+    </script>
+</body>
+</html>
