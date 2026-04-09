@@ -117,6 +117,104 @@
             transform: scale(0.99);
         }
 
+        /* === Job board card layout (used when knot tag layout:job-board) === */
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        @media (min-width: 560px) {
+            .card-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--card-accent, var(--accent));
+            border-radius: var(--radius);
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            font-size: 15px;
+            color: var(--text);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .card:hover, .card:focus-visible {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            outline: none;
+        }
+
+        .card:focus-visible {
+            border-color: var(--accent);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .card-sector {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--card-accent, var(--accent));
+        }
+
+        .card-role {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 0.1rem 0 0.1rem 0;
+            line-height: 1.3;
+            color: var(--text);
+        }
+
+        .card-company {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 0.6rem;
+        }
+
+        .card-tagline {
+            font-size: 14px;
+            line-height: 1.45;
+            color: var(--text);
+            opacity: 0.85;
+        }
+
+        /* Sector accent colours (used by all tones, but may be muted in pro tone) */
+        .card[data-sector="tech"]       { --card-accent: #3b82f6; }
+        .card[data-sector="mining"]     { --card-accent: #d97706; }
+        .card[data-sector="consulting"] { --card-accent: #8b5cf6; }
+        .card[data-sector="gov"]        { --card-accent: #059669; }
+        .card[data-sector="finance"]    { --card-accent: #0f766e; }
+        .card[data-sector="nfp"]        { --card-accent: #65a30d; }
+
+        body.tone-professional .card {
+            border-left-color: var(--border);
+        }
+
+        body.tone-professional .card-sector {
+            color: var(--muted);
+        }
+
         /* Chosen answer shown inline */
         .chosen {
             color: var(--accent);
@@ -232,10 +330,56 @@
         var scoreBar = document.getElementById('score-bar');
         var story = null;
         var currentTone = 0;
+        // Layout mode for the next set of choices, set by knot tags like
+        // `# layout:job-board`. Reset to null after each render.
+        var pendingLayout = null;
 
         // The compiled story JSON will be injected here by the build script,
         // or loaded from an external file.
         var storyContent = null;
+
+        // === Job board card data ===
+        // Keyed by company name (matches the company portion of choice text
+        // in the scanning_the_board knot in workready.ink). To add a new
+        // company, add a choice in the .ink file AND an entry here.
+        var JOB_CARDS = {
+            "NexusPoint Systems": {
+                sector: "Technology",
+                sectorKey: "tech",
+                icon: "💻",
+                tagline: "Work with real datasets in a fast-paced tech firm. Python and Excel helpful."
+            },
+            "IronVale Resources": {
+                sector: "Resources & Mining",
+                sectorKey: "mining",
+                icon: "⛏️",
+                tagline: "On-the-ground experience at one of WA's largest mining operations. FIFO intro program."
+            },
+            "Meridian Advisory": {
+                sector: "Management Consulting",
+                sectorKey: "consulting",
+                icon: "📊",
+                tagline: "Client-facing research and strategy work. Strong writing skills essential."
+            },
+            "Metro Council WA": {
+                sector: "Government",
+                sectorKey: "gov",
+                icon: "🏛️",
+                tagline: "Contribute to community policy development. Structured, supportive environment."
+            },
+            "Southern Cross Financial": {
+                sector: "Financial Services",
+                sectorKey: "finance",
+                icon: "💰",
+                tagline: "Front-line client support in wealth management. Attention to detail required."
+            },
+            "Horizon Foundation": {
+                sector: "Not-for-Profit",
+                sectorKey: "nfp",
+                icon: "🌱",
+                tagline: "Hands-on work coordinating youth programs across Perth metro."
+            }
+        };
 
         // Try to load story JSON from external file, or use embedded content
         function init() {
@@ -293,9 +437,18 @@
                 var text = story.Continue();
                 var tags = story.currentTags;
 
-                // Check for CLEAR tag
-                if (tags && tags.indexOf('CLEAR') !== -1) {
-                    shouldClear = true;
+                // Process knot/line tags
+                if (tags && tags.length) {
+                    if (tags.indexOf('CLEAR') !== -1) {
+                        shouldClear = true;
+                    }
+                    // Look for layout:X tags — sets the renderer mode for
+                    // the next batch of choices.
+                    tags.forEach(function(tag) {
+                        if (tag.indexOf('layout:') === 0) {
+                            pendingLayout = tag.substring('layout:'.length);
+                        }
+                    });
                 }
 
                 // Skip empty paragraphs
@@ -311,53 +464,118 @@
                 storyContainer.appendChild(p);
             }
 
-            // Render choices
+            // Render choices — dispatch by layout mode
             if (story.currentChoices.length > 0) {
-                var choiceContainer = document.createElement('div');
-                choiceContainer.className = 'choice-container';
-
-                story.currentChoices.forEach(function(choice, index) {
-                    var button = document.createElement('button');
-                    button.className = 'choice';
-                    button.innerHTML = choice.text;
-                    button.setAttribute('role', 'option');
-
-                    button.addEventListener('click', function(e) {
-                        e.preventDefault();
-
-                        // Show chosen answer
-                        var chosen = document.createElement('p');
-                        chosen.className = 'chosen';
-                        chosen.innerHTML = '> ' + choice.text;
-                        choiceContainer.parentNode.insertBefore(chosen, choiceContainer);
-
-                        // Remove choices
-                        choiceContainer.remove();
-
-                        // Make the choice
-                        story.ChooseChoiceIndex(index);
-
-                        // Continue
-                        continueStory();
-                    });
-
-                    choiceContainer.appendChild(button);
-                });
-
-                storyContainer.appendChild(choiceContainer);
-
-                // Focus first choice for keyboard navigation
-                var firstChoice = choiceContainer.querySelector('.choice');
-                if (firstChoice) {
-                    firstChoice.focus({ preventScroll: true });
+                if (pendingLayout === 'job-board') {
+                    renderCardChoices();
+                } else {
+                    renderButtonChoices();
                 }
+                pendingLayout = null;
             } else {
-                // Story has reached -> END (no more content, no more choices).
-                // This is the LMS completion hook point.
                 handleStoryEnd();
             }
 
             scrollToBottom();
+        }
+
+        function renderButtonChoices() {
+            var choiceContainer = document.createElement('div');
+            choiceContainer.className = 'choice-container';
+
+            story.currentChoices.forEach(function(choice, index) {
+                var button = document.createElement('button');
+                button.className = 'choice';
+                button.innerHTML = choice.text;
+                button.setAttribute('role', 'option');
+
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showChosenAndContinue(choiceContainer, choice.text, index);
+                });
+
+                choiceContainer.appendChild(button);
+            });
+
+            storyContainer.appendChild(choiceContainer);
+
+            // Focus first choice for keyboard navigation
+            var firstChoice = choiceContainer.querySelector('.choice');
+            if (firstChoice) {
+                firstChoice.focus({ preventScroll: true });
+            }
+        }
+
+        function renderCardChoices() {
+            var grid = document.createElement('div');
+            grid.className = 'card-grid';
+
+            story.currentChoices.forEach(function(choice, index) {
+                // Parse "Role — Company" from the choice text. Falls back
+                // to the choice text if parsing fails (graceful degradation
+                // for any unexpected format).
+                var parts = choice.text.split(' — ');
+                var role = parts[0] || choice.text;
+                var company = parts[1] || '';
+                var cardData = JOB_CARDS[company] || null;
+
+                var card = document.createElement('button');
+                card.className = 'card';
+                card.setAttribute('role', 'option');
+                card.setAttribute('aria-label', choice.text);
+
+                if (cardData) {
+                    card.setAttribute('data-sector', cardData.sectorKey);
+                    card.innerHTML =
+                        '<div class="card-header">' +
+                            '<span class="card-icon" aria-hidden="true">' + escapeHtml(cardData.icon) + '</span>' +
+                            '<span class="card-sector">' + escapeHtml(cardData.sector) + '</span>' +
+                        '</div>' +
+                        '<div class="card-role">' + escapeHtml(role) + '</div>' +
+                        '<div class="card-company">' + escapeHtml(company) + '</div>' +
+                        '<div class="card-tagline">' + escapeHtml(cardData.tagline) + '</div>';
+                } else {
+                    // Fallback if a choice doesn't have card data registered
+                    card.innerHTML =
+                        '<div class="card-role">' + escapeHtml(role) + '</div>' +
+                        '<div class="card-company">' + escapeHtml(company) + '</div>';
+                }
+
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showChosenAndContinue(grid, choice.text, index);
+                });
+
+                grid.appendChild(card);
+            });
+
+            storyContainer.appendChild(grid);
+
+            var firstCard = grid.querySelector('.card');
+            if (firstCard) {
+                firstCard.focus({ preventScroll: true });
+            }
+        }
+
+        function showChosenAndContinue(container, choiceText, index) {
+            // Show the chosen text inline before clearing the choices
+            var chosen = document.createElement('p');
+            chosen.className = 'chosen';
+            chosen.innerHTML = '> ' + choiceText;
+            container.parentNode.insertBefore(chosen, container);
+            container.remove();
+
+            story.ChooseChoiceIndex(index);
+            continueStory();
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
         }
 
         function handleStoryEnd() {

@@ -117,6 +117,7 @@ Before we begin, choose how you'd like the story told:
 === scanning_the_board ===
 
 # CLEAR
+# layout:job-board
 
 {tone:
 - 1: You walk up to the WorkReady Jobs board and take a deep breath. There's a lot here — six different organisations, each offering something different. Don't rush. Have a look around.
@@ -124,64 +125,41 @@ Before we begin, choose how you'd like the story told:
 - 3: 🎯 <b>STAGE 1: THE JOB BOARD</b>. Six companies. Six roles. One you. Scan the board and pick your quest!
 }
 
-The listings read:
+// The job listings are rendered as cards by the player when the
+// `layout:job-board` knot tag (above) is present. The card metadata
+// (sector, icon, tagline) lives in the JOB_CARDS lookup table in
+// index.html, keyed by company name. The renderer parses each choice's
+// text ("Role — Company") to find the matching card data.
+//
+// To add a new company: add a choice here AND a corresponding entry to
+// JOB_CARDS in index.html.
 
-<b>1. NexusPoint Systems</b> — Technology & IT Services
-<i>"Junior Data Analyst (Intern)"</i>
-Work with real datasets in a fast-paced tech firm. Python and Excel helpful.
-
-<b>2. IronVale Resources</b> — Resources & Mining
-<i>"Operations Support Intern"</i>
-On-the-ground experience at one of WA's largest mining operations. FIFO intro program.
-
-<b>3. Meridian Advisory</b> — Management Consulting
-<i>"Graduate Consulting Analyst"</i>
-Client-facing research and strategy work. Strong writing skills essential.
-
-<b>4. Metro Council WA</b> — Government & Public Sector
-<i>"Policy & Research Intern"</i>
-Contribute to community policy development. Structured, supportive environment.
-
-<b>5. Southern Cross Financial</b> — Financial Services
-<i>"Client Services Intern"</i>
-Front-line client support in wealth management. Attention to detail required.
-
-<b>6. Horizon Foundation</b> — Not-for-Profit & Community
-<i>"Community Programs Intern"</i>
-Hands-on work coordinating youth programs across Perth metro.
-
-{tone:
-- 1: Take your time. Which one speaks to you?
-- 2: Select the role you wish to apply for.
-- 3: Choose your quest! (Don't overthink it — you can always replay.)
-}
-
-+ [NexusPoint Systems — Junior Data Analyst]
++ [Junior Data Analyst — NexusPoint Systems]
     ~ chosen_company = "NexusPoint Systems"
     ~ chosen_role = "Junior Data Analyst"
     ~ manager_name = "Priya"
     -> board_choice
-+ [IronVale Resources — Operations Support]
++ [Operations Support Intern — IronVale Resources]
     ~ chosen_company = "IronVale Resources"
     ~ chosen_role = "Operations Support Intern"
     ~ manager_name = "Dale"
     -> board_choice
-+ [Meridian Advisory — Consulting Analyst]
++ [Graduate Consulting Analyst — Meridian Advisory]
     ~ chosen_company = "Meridian Advisory"
     ~ chosen_role = "Graduate Consulting Analyst"
     ~ manager_name = "Eleanor"
     -> board_choice
-+ [Metro Council WA — Policy & Research]
++ [Policy & Research Intern — Metro Council WA]
     ~ chosen_company = "Metro Council WA"
     ~ chosen_role = "Policy & Research Intern"
     ~ manager_name = "Margaret"
     -> board_choice
-+ [Southern Cross Financial — Client Services]
++ [Client Services Intern — Southern Cross Financial]
     ~ chosen_company = "Southern Cross Financial"
     ~ chosen_role = "Client Services Intern"
     ~ manager_name = "James"
     -> board_choice
-+ [Horizon Foundation — Community Programs]
++ [Community Programs Intern — Horizon Foundation]
     ~ chosen_company = "Horizon Foundation"
     ~ chosen_role = "Community Programs Intern"
     ~ manager_name = "Kim"
