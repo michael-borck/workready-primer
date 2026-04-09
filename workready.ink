@@ -79,8 +79,6 @@ VAR stage6_choice = 0                 // 1=accept, 2=defensive, 3=specifics
 
 # CLEAR
 # layout:tone-select
-# bg: title
-# char: none
 
 Welcome to <b>WorkReady</b>.
 
@@ -121,8 +119,6 @@ Before we begin, choose how you'd like the story told:
 
 # CLEAR
 # layout:job-board
-# bg: job_board
-# char: none
 
 {tone:
 - 1: You walk up to the WorkReady Jobs board and take a deep breath. There's a lot here — six different organisations, each offering something different. Don't rush. Have a look around.
@@ -247,8 +243,6 @@ Your resume isn't tailored to this role. You have a generic version saved, but i
 === submitting_the_resume ===
 
 # CLEAR
-# bg: desk
-# char: none
 
 {tone:
 - 1: Alright — Stage 2. This is where you put yourself on paper. A good resume doesn't just list what you've done. It tells the reader why you're right for <i>this</i> role.
@@ -389,8 +383,6 @@ Your resume isn't tailored to this role. You have a generic version saved, but i
 === attending_the_interview ===
 
 # CLEAR
-# bg: interview_room
-# char: hiring_manager
 
 {tone:
 - 1: Stage 3. The interview. Deep breath — this is the part most people dread. But here's a secret: preparation matters more than perfection.
@@ -580,8 +572,6 @@ What do you do?
 
 # CLEAR
 # layout:approach-cards
-# bg: office
-# char: manager
 
 {tone:
 - 1: Stage 4. You've made it — you're actually here, at {chosen_company}, sitting at a real desk with a real login and a real manager who just handed you your first real task.
@@ -719,8 +709,6 @@ You're halfway through when you hit a wall. The data format doesn't match what {
 === the_lunchroom_moment ===
 
 # CLEAR
-# bg: lunchroom
-# char: jordan
 
 {tone:
 - 1: Stage 5. Not every important moment at work happens at your desk. Sometimes the real test is in the lunchroom.
@@ -851,8 +839,6 @@ It's Friday afternoon. {chosen_company == "NexusPoint Systems": You head into th
 === the_exit_interview ===
 
 # CLEAR
-# bg: managers_office
-# char: manager
 
 {tone:
 - 1: Stage 6. The final chapter. Twelve weeks have flown by, and now you're sitting across from {manager_name} one last time. This isn't an assessment — it's a conversation. A chance to reflect on what happened and what you'll take with you.
@@ -1045,8 +1031,6 @@ How do you respond?
 === end_summary ===
 
 # CLEAR
-# bg: title
-# char: none
 
 // Calculate tier
 ~ temp tier = 0
