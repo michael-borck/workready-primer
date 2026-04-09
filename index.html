@@ -215,6 +215,44 @@
             color: var(--muted);
         }
 
+        /* === Tone-select card variant === */
+        /* Used on the title screen, layout:tone-select. */
+
+        .card-sample {
+            margin-top: 0.75rem;
+            padding: 0.6rem 0.8rem;
+            background: rgba(0, 0, 0, 0.03);
+            border-left: 2px solid var(--card-accent, var(--accent));
+            border-radius: 4px;
+            font-size: 13px;
+            font-style: italic;
+            line-height: 1.45;
+            color: var(--text);
+        }
+
+        /* Tone accent colours (independent of body.tone-X — these are for
+           the card preview before the player has picked) */
+        .card[data-accent="tone-warm"]         { --card-accent: #d97706; }
+        .card[data-accent="tone-professional"] { --card-accent: #374151; }
+        .card[data-accent="tone-playful"]      { --card-accent: #7c3aed; }
+
+        /* === Approach card variant === */
+        /* Used on Stage 4, layout:approach-cards. */
+
+        .card-tradeoff {
+            margin-top: 0.5rem;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--card-accent, var(--muted));
+            opacity: 0.9;
+        }
+
+        .card[data-accent="approach-wait"]      { --card-accent: #0ea5e9; }
+        .card[data-accent="approach-interrupt"] { --card-accent: #f59e0b; }
+        .card[data-accent="approach-ask"]       { --card-accent: #10b981; }
+
         /* Chosen answer shown inline */
         .chosen {
             color: var(--accent);
@@ -381,6 +419,63 @@
             }
         };
 
+        // === Tone selection cards (title screen, layout:tone-select) ===
+        // Keyed by exact choice text from title_screen knot.
+        var TONE_CARDS = {
+            "Warm & Encouraging": {
+                icon: "☀️",
+                accent: "tone-warm",
+                title: "Warm & Encouraging",
+                subtitle: "A supportive mentor",
+                sample: "\u201CTake your time. Which one speaks to you? There's no wrong choice here.\u201D"
+            },
+            "Professional": {
+                icon: "💼",
+                accent: "tone-professional",
+                title: "Professional",
+                subtitle: "A structured workplace briefing",
+                sample: "\u201CSelect the role you wish to apply for. Your decision will determine the available next steps.\u201D"
+            },
+            "Playful & Gamified": {
+                icon: "🎮",
+                accent: "tone-playful",
+                title: "Playful & Gamified",
+                subtitle: "Score points, unlock achievements",
+                sample: "\u201C🎯 Six companies. Six roles. ONE you. Pick your quest and let's GO!\u201D"
+            }
+        };
+
+        // === Approach cards (Stage 4, layout:approach-cards) ===
+        // Matched by checking if choice text starts with one of these keys.
+        // Substring match (rather than exact text) handles {manager_name}
+        // interpolation, which produces choice text like "Wait for Priya to..."
+        var APPROACH_CARDS = [
+            {
+                match: /^Wait/,
+                icon: "⏳",
+                accent: "approach-wait",
+                title: "Wait it out",
+                subtitle: "Hold tight until they're free",
+                tradeoff: "Slower — but builds trust"
+            },
+            {
+                match: /^Knock/,
+                icon: "🚪",
+                accent: "approach-interrupt",
+                title: "Interrupt politely",
+                subtitle: "Knock and ask now",
+                tradeoff: "Fast — but disruptive"
+            },
+            {
+                match: /^Ask/,
+                icon: "🤝",
+                accent: "approach-ask",
+                title: "Ask a colleague",
+                subtitle: "Turn to Sam at the next desk",
+                tradeoff: "Builds a connection"
+            }
+        ];
+
         // Try to load story JSON from external file, or use embedded content
         function init() {
             if (storyContent) {
@@ -466,10 +561,18 @@
 
             // Render choices — dispatch by layout mode
             if (story.currentChoices.length > 0) {
-                if (pendingLayout === 'job-board') {
-                    renderCardChoices();
-                } else {
-                    renderButtonChoices();
+                switch (pendingLayout) {
+                    case 'job-board':
+                        renderCards(getJobCardData);
+                        break;
+                    case 'tone-select':
+                        renderCards(getToneCardData);
+                        break;
+                    case 'approach-cards':
+                        renderCards(getApproachCardData);
+                        break;
+                    default:
+                        renderButtonChoices();
                 }
                 pendingLayout = null;
             } else {
@@ -506,40 +609,67 @@
             }
         }
 
-        function renderCardChoices() {
+        // === Generalised card renderer ===
+        // Takes a `getCardData(choice)` callback that returns a normalised
+        // card object: { icon, accent, badge?, title, subtitle, body?, sample?, tradeoff? }
+        // The renderer iterates over story.currentChoices, calls the getter
+        // for each, and builds a card grid. Choices without card data fall
+        // back to a minimal label-only card.
+        function renderCards(getCardData) {
             var grid = document.createElement('div');
             grid.className = 'card-grid';
 
             story.currentChoices.forEach(function(choice, index) {
-                // Parse "Role — Company" from the choice text. Falls back
-                // to the choice text if parsing fails (graceful degradation
-                // for any unexpected format).
-                var parts = choice.text.split(' — ');
-                var role = parts[0] || choice.text;
-                var company = parts[1] || '';
-                var cardData = JOB_CARDS[company] || null;
+                var data = getCardData(choice) || { title: choice.text };
 
                 var card = document.createElement('button');
                 card.className = 'card';
                 card.setAttribute('role', 'option');
                 card.setAttribute('aria-label', choice.text);
+                if (data.accent) card.setAttribute('data-accent', data.accent);
+                // Job board uses data-sector for backward-compatible CSS
+                if (data.sectorKey) card.setAttribute('data-sector', data.sectorKey);
 
-                if (cardData) {
-                    card.setAttribute('data-sector', cardData.sectorKey);
-                    card.innerHTML =
-                        '<div class="card-header">' +
-                            '<span class="card-icon" aria-hidden="true">' + escapeHtml(cardData.icon) + '</span>' +
-                            '<span class="card-sector">' + escapeHtml(cardData.sector) + '</span>' +
-                        '</div>' +
-                        '<div class="card-role">' + escapeHtml(role) + '</div>' +
-                        '<div class="card-company">' + escapeHtml(company) + '</div>' +
-                        '<div class="card-tagline">' + escapeHtml(cardData.tagline) + '</div>';
-                } else {
-                    // Fallback if a choice doesn't have card data registered
-                    card.innerHTML =
-                        '<div class="card-role">' + escapeHtml(role) + '</div>' +
-                        '<div class="card-company">' + escapeHtml(company) + '</div>';
+                var html = '';
+
+                // Header (icon + optional badge)
+                if (data.icon || data.badge) {
+                    html += '<div class="card-header">';
+                    if (data.icon) {
+                        html += '<span class="card-icon" aria-hidden="true">' +
+                                escapeHtml(data.icon) + '</span>';
+                    }
+                    if (data.badge) {
+                        html += '<span class="card-sector">' +
+                                escapeHtml(data.badge) + '</span>';
+                    }
+                    html += '</div>';
                 }
+
+                // Title (always present — falls back to choice text)
+                html += '<div class="card-role">' + escapeHtml(data.title || choice.text) + '</div>';
+
+                // Subtitle (optional)
+                if (data.subtitle) {
+                    html += '<div class="card-company">' + escapeHtml(data.subtitle) + '</div>';
+                }
+
+                // Body / tagline (optional)
+                if (data.body) {
+                    html += '<div class="card-tagline">' + escapeHtml(data.body) + '</div>';
+                }
+
+                // Sample line (optional, used by tone-select cards)
+                if (data.sample) {
+                    html += '<div class="card-sample">' + escapeHtml(data.sample) + '</div>';
+                }
+
+                // Tradeoff hint (optional, used by approach cards)
+                if (data.tradeoff) {
+                    html += '<div class="card-tradeoff">' + escapeHtml(data.tradeoff) + '</div>';
+                }
+
+                card.innerHTML = html;
 
                 card.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -555,6 +685,40 @@
             if (firstCard) {
                 firstCard.focus({ preventScroll: true });
             }
+        }
+
+        // === Per-layout card data getters ===
+        // Each takes a Choice object and returns the normalised card data
+        // (or null/undefined if there's no match — renderCards handles fallback).
+
+        function getJobCardData(choice) {
+            // Parse "Role — Company" from the choice text
+            var parts = choice.text.split(' — ');
+            var role = parts[0] || choice.text;
+            var company = parts[1] || '';
+            var jobData = JOB_CARDS[company];
+            if (!jobData) return null;
+            return {
+                icon: jobData.icon,
+                badge: jobData.sector,
+                sectorKey: jobData.sectorKey,
+                title: role,
+                subtitle: company,
+                body: jobData.tagline
+            };
+        }
+
+        function getToneCardData(choice) {
+            return TONE_CARDS[choice.text] || null;
+        }
+
+        function getApproachCardData(choice) {
+            for (var i = 0; i < APPROACH_CARDS.length; i++) {
+                if (APPROACH_CARDS[i].match.test(choice.text)) {
+                    return APPROACH_CARDS[i];
+                }
+            }
+            return null;
         }
 
         function showChosenAndContinue(container, choiceText, index) {

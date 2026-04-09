@@ -78,6 +78,7 @@ VAR stage6_choice = 0                 // 1=accept, 2=defensive, 3=specifics
 ~ tone = 0
 
 # CLEAR
+# layout:tone-select
 
 Welcome to <b>WorkReady</b>.
 
@@ -570,6 +571,7 @@ What do you do?
 === completing_the_work_task ===
 
 # CLEAR
+# layout:approach-cards
 
 {tone:
 - 1: Stage 4. You've made it — you're actually here, at {chosen_company}, sitting at a real desk with a real login and a real manager who just handed you your first real task.
