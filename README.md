@@ -63,6 +63,24 @@ That's the entire build. The script:
 
 You need Node.js installed. Nothing else.
 
+### Pre-commit hook (recommended)
+
+A pre-commit hook lives at `.githooks/pre-commit`. When `workready.ink` is
+in a commit, it automatically runs `./build.sh` and stages the regenerated
+`workready.ink.json` and `lib/ink.js` so they're included in the same
+commit. This eliminates the "I forgot to rebuild" footgun.
+
+The hook is enabled in this clone via a symlink. **On a fresh clone**,
+re-enable it once with:
+
+```bash
+ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
+```
+
+(Or, if you prefer, `git config core.hooksPath .githooks` — same effect.)
+
+To bypass the hook for a single commit (rare): `git commit --no-verify`.
+
 ## Authoring the story
 
 Two reasonable workflows for editing `workready.ink`:

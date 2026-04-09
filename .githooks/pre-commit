@@ -1,0 +1,35 @@
+#!/bin/bash
+# Pre-commit hook: if workready.ink is staged, automatically rebuild
+# workready.ink.json (and refresh lib/ink.js) and stage the outputs.
+#
+# Why: GitHub Pages serves files as-is with no build step. If you commit
+# a .ink edit without running ./build.sh first, the source goes up but the
+# JSON the browser actually loads is stale. This hook eliminates that
+# footgun.
+#
+# Bypass with: git commit --no-verify  (use sparingly)
+#
+# Setup on a fresh clone:
+#   ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .githooks/pre-commit
+# (Or: git config core.hooksPath .githooks)
+
+set -e
+
+# Only act if workready.ink is in the staged changes
+if git diff --cached --name-only | grep -qx 'workready\.ink'; then
+    echo "[pre-commit] workready.ink changed — rebuilding..."
+
+    if ! ./build.sh; then
+        echo "[pre-commit] BUILD FAILED — commit aborted." >&2
+        echo "[pre-commit] Fix the Ink errors above and try again." >&2
+        exit 1
+    fi
+
+    # Stage the regenerated build outputs so they go in this same commit
+    git add workready.ink.json lib/ink.js
+
+    echo "[pre-commit] Build outputs staged. Continuing commit."
+fi
+
+exit 0

@@ -17,6 +17,11 @@
 // player what would have happened if they'd picked the alternative.
 // This is the primer's pedagogical core — preserve it when editing.
 //
+// MAINTAINER NOTE — BUILD:
+// After editing this file, the workready.ink.json output must be
+// regenerated. The pre-commit hook (.githooks/pre-commit) does this
+// automatically when you `git commit`. To rebuild manually: ./build.sh
+//
 // ============================================================================
 
 // --- State Variables ---
