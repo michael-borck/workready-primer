@@ -20,7 +20,20 @@
             --choice-bg: #f0f4ff;
             --choice-hover: #dbeafe;
             --radius: 8px;
+            /* Scene accent — defaults to the tone accent, overridden when
+               a company is chosen (see body.company-X classes below). */
+            --scene-accent: var(--accent);
         }
+
+        /* === Per-company scene accent === */
+        /* Activated by JS when chosen_company is set. Tints the scene
+           background placeholder, and any future company-branded UI. */
+        body.company-tech       { --scene-accent: #3b82f6; }
+        body.company-mining     { --scene-accent: #d97706; }
+        body.company-consulting { --scene-accent: #8b5cf6; }
+        body.company-gov        { --scene-accent: #059669; }
+        body.company-finance    { --scene-accent: #0f766e; }
+        body.company-nfp        { --scene-accent: #65a30d; }
 
         /* Tone-specific theming */
         body.tone-warm {
@@ -253,6 +266,108 @@
         .card[data-accent="approach-interrupt"] { --card-accent: #f59e0b; }
         .card[data-accent="approach-ask"]       { --card-accent: #10b981; }
 
+        /* === Scene display layer === */
+        /* Banner above the story showing the current background scene
+           and (optional) character portrait. Driven by `# bg:` and
+           `# char:` Ink tags. Currently using CSS placeholders — swap
+           to <img> elements when real assets are ready. */
+
+        #scene {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: none; /* shown when first scene tag fires */
+        }
+
+        #scene.active {
+            display: block;
+        }
+
+        .scene-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 7;
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+            background: linear-gradient(
+                135deg,
+                color-mix(in srgb, var(--scene-accent) 25%, var(--surface)) 0%,
+                color-mix(in srgb, var(--scene-accent) 8%, var(--surface)) 100%
+            );
+            transition: background 0.6s ease;
+        }
+
+        /* Fallback for browsers without color-mix support */
+        @supports not (background: color-mix(in srgb, red, blue)) {
+            .scene-frame {
+                background: var(--scene-accent);
+                opacity: 0.85;
+            }
+        }
+
+        .scene-label {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--scene-accent);
+            opacity: 0.7;
+            padding: 1rem;
+        }
+
+        .scene-label::before {
+            content: "[ ";
+            opacity: 0.5;
+        }
+
+        .scene-label::after {
+            content: " ]";
+            opacity: 0.5;
+        }
+
+        /* Character portrait — small bust in the corner of the scene frame */
+        .scene-character {
+            position: absolute;
+            bottom: 0.75rem;
+            right: 0.75rem;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--scene-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--scene-accent);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: scale(0.85);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .scene-character.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Compact scene on small screens */
+        @media (max-width: 480px) {
+            #scene { padding: 0 1rem; }
+            .scene-frame { aspect-ratio: 16 / 8; margin-top: 1rem; }
+            .scene-label { font-size: 11px; letter-spacing: 1px; }
+            .scene-character { width: 52px; height: 52px; font-size: 20px; }
+        }
+
         /* Chosen answer shown inline */
         .chosen {
             color: var(--accent);
@@ -344,6 +459,16 @@
         Confidence: <span id="score-confidence">50</span>
     </div>
 
+    <!-- Scene display layer — banner above the story showing current
+         background scene + character portrait. Driven by # bg: and # char:
+         Ink tags. Currently CSS placeholders (see .scene-frame style). -->
+    <div id="scene">
+        <div class="scene-frame">
+            <div class="scene-label" id="scene-label">Scene</div>
+            <div class="scene-character" id="scene-character"></div>
+        </div>
+    </div>
+
     <div id="story-container">
         <div id="loading">
             <div class="spinner"></div>
@@ -366,11 +491,18 @@
         var loadingEl = document.getElementById('loading');
         var errorEl = document.getElementById('error');
         var scoreBar = document.getElementById('score-bar');
+        var sceneEl = document.getElementById('scene');
+        var sceneLabelEl = document.getElementById('scene-label');
+        var sceneCharEl = document.getElementById('scene-character');
         var story = null;
         var currentTone = 0;
         // Layout mode for the next set of choices, set by knot tags like
         // `# layout:job-board`. Reset to null after each render.
         var pendingLayout = null;
+        // Currently active scene background and character. Persisted across
+        // knots until a new # bg: or # char: tag fires (or `# char:none`).
+        var currentBg = null;
+        var currentChar = null;
 
         // The compiled story JSON will be injected here by the build script,
         // or loaded from an external file.
@@ -476,6 +608,44 @@
             }
         ];
 
+        // === Scene placeholders ===
+        // Maps a scene key (used in `# bg:` Ink tags) to a display label.
+        // When real images are added, replace `label` with an `image` URL
+        // and update setScene() to swap the background instead.
+        var SCENES = {
+            title:           { label: "Title" },
+            job_board:       { label: "WorkReady Jobs Board" },
+            desk:            { label: "Your Desk" },
+            interview_room:  { label: "Interview Room" },
+            office:          { label: "Open-Plan Office" },
+            lunchroom:       { label: "The Lunchroom" },
+            managers_office: { label: "Manager's Office" }
+        };
+
+        // === Character placeholders ===
+        // Maps a character key (used in `# char:` Ink tags) to a display
+        // initial. When real portraits are added, replace `initial` with
+        // an `image` URL and update setCharacter() to use an <img>.
+        // Use `# char:none` to hide the active character.
+        var CHARACTERS = {
+            manager:        { initial: "M", label: "Your manager" },
+            sam:            { initial: "S", label: "Sam (colleague)" },
+            hiring_manager: { initial: "H", label: "Hiring manager" },
+            jordan:         { initial: "J", label: "Jordan (team lead)" }
+        };
+
+        // === Company → CSS class map ===
+        // chosen_company variable observer maps the company name to a body
+        // class so the per-company --scene-accent kicks in.
+        var COMPANY_CLASS = {
+            "NexusPoint Systems":      "company-tech",
+            "IronVale Resources":      "company-mining",
+            "Meridian Advisory":       "company-consulting",
+            "Metro Council WA":        "company-gov",
+            "Southern Cross Financial": "company-finance",
+            "Horizon Foundation":      "company-nfp"
+        };
+
         // Try to load story JSON from external file, or use embedded content
         function init() {
             if (storyContent) {
@@ -512,6 +682,14 @@
                 updateToneClass();
             });
 
+            // Observe chosen_company — sets a body class so the per-company
+            // --scene-accent CSS variable kicks in for backgrounds and any
+            // company-branded UI. Reset to none on replay (when chosen_company
+            // is cleared back to "").
+            story.ObserveVariable('chosen_company', function(varName, newValue) {
+                updateCompanyClass(newValue);
+            });
+
             // Observe score changes for the score bar
             story.ObserveVariable('readiness_score', function(varName, newValue) {
                 var el = document.getElementById('score-readiness');
@@ -523,6 +701,42 @@
             });
 
             continueStory();
+        }
+
+        function updateCompanyClass(companyName) {
+            // Strip any existing company-X class
+            document.body.className = document.body.className
+                .split(/\s+/)
+                .filter(function(c) { return c.indexOf('company-') !== 0; })
+                .join(' ');
+            // Add the new one (if any)
+            var cls = COMPANY_CLASS[companyName];
+            if (cls) document.body.classList.add(cls);
+        }
+
+        function setScene(key) {
+            currentBg = key;
+            var scene = SCENES[key];
+            if (!scene) {
+                sceneLabelEl.textContent = key; // fallback to raw key
+            } else {
+                sceneLabelEl.textContent = scene.label;
+            }
+            sceneEl.classList.add('active');
+        }
+
+        function setCharacter(key) {
+            if (key === 'none' || !key) {
+                currentChar = null;
+                sceneCharEl.classList.remove('active');
+                sceneCharEl.textContent = '';
+                return;
+            }
+            currentChar = key;
+            var ch = CHARACTERS[key];
+            sceneCharEl.textContent = ch ? ch.initial : key.charAt(0).toUpperCase();
+            sceneCharEl.title = ch ? ch.label : key;
+            sceneCharEl.classList.add('active');
         }
 
         function continueStory() {
@@ -537,11 +751,22 @@
                     if (tags.indexOf('CLEAR') !== -1) {
                         shouldClear = true;
                     }
-                    // Look for layout:X tags — sets the renderer mode for
-                    // the next batch of choices.
                     tags.forEach(function(tag) {
+                        // layout:X — sets the renderer mode for the next
+                        // batch of choices (used by tone-select, job-board,
+                        // approach-cards).
                         if (tag.indexOf('layout:') === 0) {
                             pendingLayout = tag.substring('layout:'.length);
+                        }
+                        // bg:X — switch the scene background. Persists
+                        // until a new bg: tag fires.
+                        else if (tag.indexOf('bg:') === 0) {
+                            setScene(tag.substring('bg:'.length).trim());
+                        }
+                        // char:X — show a character portrait. Use
+                        // `char:none` to hide the active character.
+                        else if (tag.indexOf('char:') === 0) {
+                            setCharacter(tag.substring('char:'.length).trim());
                         }
                     });
                 }
