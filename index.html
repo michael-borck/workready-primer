@@ -72,6 +72,26 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* Scene banner — comic-poster gradient per stage (drop real artwork
+           into assets/ later and swap the gradient for an <img>). */
+        #scene-banner {
+            height: 110px;
+            border-radius: var(--radius);
+            margin: 0 0 1rem 0;
+            border: 1px solid var(--border);
+            background-size: cover;
+            background-position: center;
+        }
+        #scene-banner.hidden { display: none; }
+        #scene-banner[data-scene="title"]     { background: linear-gradient(135deg, #1e3a8a, #4a63e7 60%, #7c9bff); }
+        #scene-banner[data-scene="job-board"] { background: linear-gradient(135deg, #312e81, #6366f1 60%, #a5b4fc); }
+        #scene-banner[data-scene="resume"]    { background: linear-gradient(135deg, #7c2d12, #fb6a3a 60%, #fdba74); }
+        #scene-banner[data-scene="interview"] { background: linear-gradient(135deg, #0f172a, #475569 60%, #94a3b8); }
+        #scene-banner[data-scene="tasks"]     { background: linear-gradient(135deg, #134e4a, #0d9488 60%, #5eead4); }
+        #scene-banner[data-scene="lunchroom"] { background: linear-gradient(135deg, #713f12, #f59e0b 60%, #fcd34d); }
+        #scene-banner[data-scene="exit"]      { background: linear-gradient(135deg, #14532d, #16a34a 60%, #86efac); }
+        #scene-banner[data-scene="summary"]   { background: linear-gradient(135deg, #3b0764, #7c3aed 60%, #c4b5fd); }
+
         #story-container {
             max-width: 640px;
             margin: 0 auto;
@@ -375,6 +395,8 @@
         Confidence: <span id="score-confidence">50</span>
     </div>
 
+    <div id="scene-banner" class="hidden" aria-hidden="true"></div>
+    <div id="scene-banner" class="hidden" aria-hidden="true"></div>
     <div id="story-container">
         <div id="loading">
             <div class="spinner"></div>
@@ -590,6 +612,20 @@
         function continueStory() {
             var shouldClear = false;
 
+            function setScene(name) {
+                var SCENE_NAMES = ['title', 'job-board', 'resume', 'interview',
+                                   'tasks', 'lunchroom', 'exit', 'summary'];
+                var banner = document.getElementById('scene-banner');
+                if (!banner) return;
+                if (!name || SCENE_NAMES.indexOf(name) === -1) {
+                    banner.classList.add('hidden');
+                    banner.removeAttribute('data-scene');
+                    return;
+                }
+                banner.setAttribute('data-scene', name);
+                banner.classList.remove('hidden');
+            }
+
             while (story.canContinue) {
                 var text = story.Continue();
                 var tags = story.currentTags;
@@ -599,7 +635,18 @@
                     if (tags.indexOf('CLEAR') !== -1) {
                         shouldClear = true;
                     }
-                    // layout:X — sets the renderer mode for the next batch
+                                if (tags.indexOf('CLEAR') !== -1) {
+                        setScene(null);
+                    }
+                    if (tags.indexOf('scene: title') !== -1 || tags.indexOf('scene: summary') !== -1) {
+                        setScene(null);
+                    }
+                    tags.forEach(function(tag) {
+                        if (tag.indexOf('scene:') === 0) {
+                            setScene(tag.substring('scene:'.length).trim());
+                        }
+                    });
+        // layout:X — sets the renderer mode for the next batch
                     // of choices (used by tone-select, job-board,
                     // approach-cards).
                     tags.forEach(function(tag) {

@@ -58,6 +58,8 @@ VAR stage6_choice = 0                 // 1=accept, 2=defensive, 3=specifics
 
 === title_screen ===
 
+# scene: title
+
 // Reset all state (needed for replay)
 ~ readiness_score = 0
 ~ confidence = 50
@@ -116,6 +118,8 @@ Before we begin, choose how you'd like the story told:
 // ============================================================================
 
 === scanning_the_board ===
+
+# scene: job-board
 
 # CLEAR
 # layout:job-board
@@ -241,6 +245,8 @@ Your resume isn't tailored to this role. You have a generic version saved, but i
 // ============================================================================
 
 === submitting_the_resume ===
+
+# scene: resume
 
 # CLEAR
 
@@ -381,6 +387,8 @@ Your resume isn't tailored to this role. You have a generic version saved, but i
 // ============================================================================
 
 === attending_the_interview ===
+
+# scene: interview
 
 # CLEAR
 
@@ -570,6 +578,8 @@ What do you do?
 
 === completing_the_work_task ===
 
+# scene: tasks
+
 # CLEAR
 # layout:approach-cards
 
@@ -708,6 +718,8 @@ You're halfway through when you hit a wall. The data format doesn't match what {
 
 === the_lunchroom_moment ===
 
+# scene: lunchroom
+
 # CLEAR
 
 {tone:
@@ -837,6 +849,8 @@ It's Friday afternoon. {chosen_company == "NexusPoint Systems": You head into th
 // ============================================================================
 
 === the_exit_interview ===
+
+# scene: exit
 
 # CLEAR
 
@@ -1029,6 +1043,8 @@ How do you respond?
 // ============================================================================
 
 === end_summary ===
+
+# scene: summary
 
 # CLEAR
 
