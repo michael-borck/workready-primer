@@ -149,6 +149,20 @@
             }
         }
 
+        /* Exactly three cards (tone select, approach cards) sit on one row */
+        @media (min-width: 700px) {
+            .card-grid:has(> .card:nth-child(3)):not(:has(> .card:nth-child(4))) {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.75rem;
+            }
+            .card-grid:has(> .card:nth-child(3)):not(:has(> .card:nth-child(4))) .card {
+                padding: 1rem;
+            }
+            .card-grid:has(> .card:nth-child(3)):not(:has(> .card:nth-child(4))) .card-sample {
+                font-size: 12px;
+            }
+        }
+
         .card {
             display: flex;
             flex-direction: column;

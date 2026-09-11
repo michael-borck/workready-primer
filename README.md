@@ -1,8 +1,7 @@
 # WorkReady Primer
 
 A browser-based interactive fiction primer for the **WorkReady** internship
-simulation — a teaching tool for Curtin University's School of Marketing and
-Management. Students play through six stages of an internship journey
+simulation — a university teaching tool. Students play through six stages of an internship journey
 (scanning the job board, submitting a resume, interviewing, completing a
 work task, navigating a social moment, and the exit interview) before their
 real placement.
@@ -164,6 +163,5 @@ workready-primer/
 
 ## Credits
 
-Part of the **WorkReady** project at Curtin University, School of Marketing
-and Management. Built with [Ink](https://www.inklestudios.com/ink/) by
+Part of the **WorkReady** educational simulation project. Built with [Ink](https://www.inklestudios.com/ink/) by
 inkle and [inkjs](https://github.com/inkle/inkjs).
