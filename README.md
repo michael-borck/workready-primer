@@ -1,5 +1,9 @@
 # WorkReady primer
 
+<p align="center">
+  <img src="assets/scenes/title.jpg" alt="WorkReady primer" width="720">
+</p>
+
 A standalone interactive story that introduces the WorkReady internship journey. Students choose warm, professional or playful narration and practise decisions about applying, interviewing, doing a task, joining colleagues and reflecting on a placement. Alternative-outcome passages show what another choice might have led to.
 
 [Project home](https://github.com/michael-borck/workready-deploy) · [Architecture](https://github.com/michael-borck/workready-deploy/blob/main/docs/architecture.md#independent-primer) · [Live primer](https://primer.eduserver.au/)
